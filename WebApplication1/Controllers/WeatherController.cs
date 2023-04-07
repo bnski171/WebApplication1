@@ -6,6 +6,10 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+using WebApplication1.Data;
+using WebApplication1.Models;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace WebApplication1.Controllers
 {
@@ -16,12 +20,14 @@ namespace WebApplication1.Controllers
         private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
         private readonly IDistributedCache _cache;
+        private readonly AppDbContext _dbContext;
 
-        public WeatherController(IConfiguration configuration, IDistributedCache cache)
+        public WeatherController(IConfiguration configuration, IDistributedCache cache, AppDbContext dbContext)
         {
             _configuration = configuration;
             _httpClient = new HttpClient();
             _cache = cache;
+            _dbContext = dbContext;
         }
 
         [HttpGet("{city}")]
@@ -55,6 +61,25 @@ namespace WebApplication1.Controllers
                         string content = await response.Content.ReadAsStringAsync();
                         weatherData = JsonConvert.DeserializeObject<WeatherData>(content);
 
+                        // Save temperature and city to the database
+                        var temperatureRecord = new TemperatureRecord
+                        {
+                            City = weatherData.name,
+                            Temperature = weatherData.main.temp
+                        };
+
+                        try
+                        {
+                            _dbContext.TemperatureRecords.Add(temperatureRecord);
+                            await _dbContext.SaveChangesAsync();
+                        }
+                        catch (DbUpdateException ex)
+                        {
+                            // Catch the exception and return a detailed error message
+                            return StatusCode(500, $"An error occurred while saving the entity changes: {ex.Message} - {ex.InnerException?.Message}");
+                        }
+
+                        // Cache the weather data
                         await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(weatherData), new DistributedCacheEntryOptions
                         {
                             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
@@ -64,6 +89,8 @@ namespace WebApplication1.Controllers
                     {
                         return BadRequest($"Failed to get weather data for {city}. Error: {response.ReasonPhrase}");
                     }
+
+
                 }
                 catch (Exception ex)
                 {

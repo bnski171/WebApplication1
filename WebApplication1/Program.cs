@@ -7,15 +7,18 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Caching.Memory; // Добавьте эту строку
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Caching.Distributed;
+using WebApplication1.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
-builder.Services.AddMemoryCache(); // Добавьте эту строку
-builder.Services.AddSingleton<IDistributedCache, MemoryDistributedCache>(); // Добавьте эту строку
+builder.Services.AddMemoryCache(); 
+builder.Services.AddSingleton<IDistributedCache, MemoryDistributedCache>(); 
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite("Data Source=weather.db"));
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
