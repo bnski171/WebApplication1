@@ -9,6 +9,9 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 using WebApplication1.Data;
 using WebApplication1.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using System.Linq;
+using System.Collections.Generic;
 
 
 namespace WebApplication1.Controllers
@@ -28,6 +31,56 @@ namespace WebApplication1.Controllers
             _httpClient = new HttpClient();
             _cache = cache;
             _dbContext = dbContext;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateTemperatureRecord([FromBody] TemperatureRecord temperatureRecord)
+        {
+            if (temperatureRecord == null)
+            {
+                return BadRequest("Temperature record is null.");
+            }
+
+            _dbContext.TemperatureRecords.Add(temperatureRecord);
+            await _dbContext.SaveChangesAsync();
+            return StatusCode(StatusCodes.Status201Created);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTemperatureRecord(int id, [FromBody] TemperatureRecord temperatureRecord)
+        {
+            if (temperatureRecord == null || id != temperatureRecord.Id)
+            {
+                return BadRequest("Temperature record is null or id is incorrect.");
+            }
+
+            var existingTemperatureRecord = await _dbContext.TemperatureRecords.FindAsync(id);
+            if (existingTemperatureRecord == null)
+            {
+                return NotFound("Temperature record not found.");
+            }
+
+            existingTemperatureRecord.City = temperatureRecord.City;
+            existingTemperatureRecord.Temperature = temperatureRecord.Temperature;
+
+            _dbContext.TemperatureRecords.Update(existingTemperatureRecord);
+            await _dbContext.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // DELETE api/weather/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTemperatureRecord(int id)
+        {
+            var temperatureRecord = await _dbContext.TemperatureRecords.FindAsync(id);
+            if (temperatureRecord == null)
+            {
+                return NotFound("Temperature record not found.");
+            }
+
+            _dbContext.TemperatureRecords.Remove(temperatureRecord);
+            await _dbContext.SaveChangesAsync();
+            return NoContent();
         }
 
         [HttpGet("{city}")]
