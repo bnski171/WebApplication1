@@ -68,7 +68,7 @@ namespace WebApplication1.Controllers
             return NoContent();
         }
 
-        // DELETE api/weather/{id}
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTemperatureRecord(int id)
         {
@@ -114,7 +114,6 @@ namespace WebApplication1.Controllers
                         string content = await response.Content.ReadAsStringAsync();
                         weatherData = JsonConvert.DeserializeObject<WeatherData>(content);
 
-                        // Save temperature and city to the database
                         var temperatureRecord = new TemperatureRecord
                         {
                             City = weatherData.name,
@@ -128,11 +127,11 @@ namespace WebApplication1.Controllers
                         }
                         catch (DbUpdateException ex)
                         {
-                            // Catch the exception and return a detailed error message
+                            
                             return StatusCode(500, $"An error occurred while saving the entity changes: {ex.Message} - {ex.InnerException?.Message}");
                         }
 
-                        // Cache the weather data
+                        
                         await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(weatherData), new DistributedCacheEntryOptions
                         {
                             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
